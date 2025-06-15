@@ -8,9 +8,11 @@ import java.util.UUID;
 @Getter
 public class DeleteFolderEvent extends ApplicationEvent {
     private UUID folderId;
+    private UUID userId;
 
-    public DeleteFolderEvent(Object source, UUID folderId) {
+    public DeleteFolderEvent(Object source, UUID folderId, UUID userId) {
         super(source);
         this.folderId = folderId;
+        this.userId = userId;
     }
 }

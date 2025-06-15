@@ -42,8 +42,10 @@ public class FolderCommandServiceImpl implements FolderCommandService {
             // Save the default folder to the repository
             var savedFolder = folderRepository.save(defaultFolder);
 
+
             // Publish an event after saving the folder
-            eventPublisher.publishEvent(new CreateFileEvent(defaultFolder, savedFolder.getId(), user.getId()));
+            eventPublisher.publishEvent(new CreateFolderEvent(defaultFolder, savedFolder.getId(), user.getId()));
+
 
             return Optional.of(savedFolder);
         } catch (Exception e) {
@@ -61,6 +63,9 @@ public class FolderCommandServiceImpl implements FolderCommandService {
         if (existingFolder.isPresent()) {
             throw new RuntimeException("Folder with the same name already exists for this user.");
         }
+
+
+
 
         var folder = folderRepository.findFolderById(command.parentFolderId());
 
@@ -92,6 +97,15 @@ public class FolderCommandServiceImpl implements FolderCommandService {
             throw new RuntimeException("Folder not found");
         }
 
+        if (folderResult.get().getName().equals("root")) {
+            throw new RuntimeException("Cannot rename the root folder.");
+        }
+
+        if (folderRepository.existsFolderByNameAndUser_Id(
+                command.name(), folderResult.get().getUser().getId())) {
+            throw new RuntimeException("Folder with the same name already exists for this user.");
+        }
+
         var existingFolder = folderRepository.findFolderByUser_IdAndName(folderResult.get().getUser().getId(), command.name());
         if (existingFolder.isPresent() && !existingFolder.get().getId().equals(command.folderId())) {
             throw new RuntimeException("Folder with the same name already exists for this user.");
@@ -104,7 +118,7 @@ public class FolderCommandServiceImpl implements FolderCommandService {
             folderRepository.save(folder);
 
             // Publish an event after updating the folder
-            eventPublisher.publishEvent(new UpdateFolderNameEvent(folder, folder.getId(), command.name()));
+            eventPublisher.publishEvent(new UpdateFolderNameEvent(folder, folder.getId(), command.name(), folder.getUser().getId()));
 
             return Optional.of(folder);
         } catch (Exception e) {
@@ -131,13 +145,18 @@ public class FolderCommandServiceImpl implements FolderCommandService {
 
         var newParentFolder = newParentFolderResult.get();
 
-        folder.setParentFolder(newParentFolder);
+        folder.setParentFolderWithCycleVerification(newParentFolder);
 
         try {
             folderRepository.save(folder);
 
             // Publish an event after updating the folder's parent
-            eventPublisher.publishEvent(new UpdateFolderParentFolderEvent(folder, folder.getId(), oldParentFolder.getId(), newParentFolder.getId()));
+            eventPublisher.publishEvent(new UpdateFolderParentFolderEvent(
+                    folder,
+                    folder.getId(),
+                    oldParentFolder.getId(),
+                    newParentFolder.getId(),
+                    folder.getUser().getId()));
 
             return Optional.of(folder);
         } catch (Exception e) {
@@ -158,7 +177,7 @@ public class FolderCommandServiceImpl implements FolderCommandService {
             folderRepository.delete(folder.get());
 
             // Publish an event after deleting the folder
-            eventPublisher.publishEvent(new DeleteFolderEvent(folder, folder.get().getId()));
+            eventPublisher.publishEvent(new DeleteFolderEvent(folder, folder.get().getId(), folder.get().getUser().getId()));
         } catch (Exception e) {
             throw new RuntimeException("Error deleting folder: " + e.getMessage());
         }

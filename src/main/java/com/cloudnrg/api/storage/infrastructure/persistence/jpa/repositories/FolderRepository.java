@@ -13,4 +13,6 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
     Optional<Folder> findFolderById(UUID id);
 
     Optional<Folder> findFolderByUser_IdAndName(UUID userId, String name);
+
+    Boolean existsFolderByNameAndUser_Id(String name, UUID userId);
 }

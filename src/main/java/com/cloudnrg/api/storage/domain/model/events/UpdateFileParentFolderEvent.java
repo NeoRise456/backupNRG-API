@@ -8,13 +8,20 @@ import java.util.UUID;
 @Getter
 public class UpdateFileParentFolderEvent extends ApplicationEvent {
     private UUID fileId;
-    private UUID oldParentFolderId;
-    private UUID newParentFolderId;
+    private UUID userId;
+    private String oldParentFolderName;
+    private String newParentFolderName;
 
-    public UpdateFileParentFolderEvent(Object source, UUID fileId, UUID oldParentFolderId, UUID newParentFolderId) {
+    public UpdateFileParentFolderEvent(
+            Object source,
+            UUID fileId,
+            UUID userId,
+            String oldParentFolderName,
+            String newParentFolderName) {
         super(source);
         this.fileId = fileId;
-        this.oldParentFolderId = oldParentFolderId;
-        this.newParentFolderId = newParentFolderId;
+        this.userId = userId;
+        this.oldParentFolderName = oldParentFolderName;
+        this.newParentFolderName = newParentFolderName;
     }
 }

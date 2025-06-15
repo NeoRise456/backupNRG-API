@@ -5,7 +5,7 @@ import com.cloudnrg.api.auditlog.domain.model.valueobjects.AuditTargetType;
 
 import java.util.UUID;
 
-public record RegisterAuditLogCommand(
+public record CreateAuditLogCommand(
         UUID userId,
         AuditAction action,
         AuditTargetType target,

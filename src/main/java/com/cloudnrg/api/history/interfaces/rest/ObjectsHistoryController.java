@@ -54,7 +54,7 @@ public class ObjectsHistoryController {
             @ApiResponse(responseCode = "404", description = "No Object Histories found for the User ID"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/{userId}")
+    @GetMapping("/user/{userId}")
     public ResponseEntity<List<ObjectHistoryResource>> getAllObjectsHistoryByUserId(@PathVariable UUID userId) {
         var getAllObjectsHistoryQuery = new GetAllObjectsHistoryByUserIdQuery(userId);
         var objectsHistory = queryService.handle(getAllObjectsHistoryQuery);
@@ -67,7 +67,13 @@ public class ObjectsHistoryController {
         return ResponseEntity.ok(objectsHistoryResources);
     }
 
-    @GetMapping("/{fileId}")
+    @Operation(summary = "Get all Object Histories by File ID", description = "Retrieve all Object History records associated with a specific File ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Object Histories found"),
+            @ApiResponse(responseCode = "404", description = "No Object Histories found for the File ID"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/file/{fileId}")
     public ResponseEntity<List<ObjectHistoryResource>> getAllObjectsHistoryByFileId(@PathVariable UUID fileId) {
         var getAllObjectsHistoryQuery = new GetAllObjectsHistoryByFileIdQuery(fileId);
         var objectsHistory = queryService.handle(getAllObjectsHistoryQuery);

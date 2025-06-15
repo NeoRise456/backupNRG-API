@@ -9,10 +9,12 @@ import java.util.UUID;
 public class UpdateFolderNameEvent extends ApplicationEvent {
     private UUID folderId;
     private String newName;
+    private UUID userId;
 
-    public UpdateFolderNameEvent(Object source, UUID folderId, String newName) {
+    public UpdateFolderNameEvent(Object source, UUID folderId, String newName, UUID userId) {
         super(source);
         this.folderId = folderId;
         this.newName = newName;
+        this.userId = userId;
     }
 }

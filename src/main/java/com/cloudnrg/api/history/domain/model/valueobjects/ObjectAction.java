@@ -1,6 +1,6 @@
 package com.cloudnrg.api.history.domain.model.valueobjects;
 
-public enum Action {
+public enum ObjectAction {
     CREATE,
     UPDATE
 }

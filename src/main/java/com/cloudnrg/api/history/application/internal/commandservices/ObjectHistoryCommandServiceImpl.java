@@ -2,6 +2,7 @@ package com.cloudnrg.api.history.application.internal.commandservices;
 
 import com.cloudnrg.api.history.domain.model.aggregates.ObjectHistory;
 import com.cloudnrg.api.history.domain.model.commands.CreateObjectHistoryCommand;
+import com.cloudnrg.api.history.domain.model.commands.DeleteObjectHistoriesByFileId;
 import com.cloudnrg.api.history.domain.services.ObjectHistoryCommandService;
 import com.cloudnrg.api.history.infrastructure.persistence.jpa.repositories.ObjectHistoryRepository;
 import com.cloudnrg.api.iam.infrastructure.persistance.jpa.repositories.UserRepository;
@@ -14,7 +15,11 @@ import java.util.Optional;
 @Service
 public class ObjectHistoryCommandServiceImpl implements ObjectHistoryCommandService {
     private final ObjectHistoryRepository objectHistoryRepository;
+
+    //TODO: refactor to external user service
     private final UserRepository userRepository;
+
+    //TODO: refactor to external file service
     private final CloudFileRepository cloudFileRepository;
 
     public ObjectHistoryCommandServiceImpl(
@@ -41,7 +46,8 @@ public class ObjectHistoryCommandServiceImpl implements ObjectHistoryCommandServ
         var objectHistory = new ObjectHistory(
                 file.get(),
                 user.get(),
-                command.action()
+                command.action(),
+                command.message()
         );
 
         try {
@@ -50,5 +56,13 @@ public class ObjectHistoryCommandServiceImpl implements ObjectHistoryCommandServ
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to create object history: " + e.getMessage());
         }
+    }
+
+    @Override
+    public void handle(DeleteObjectHistoriesByFileId command) {
+
+
+        objectHistoryRepository.deleteObjectHistoriesByFile_Id(command.fileId());
+
     }
 }

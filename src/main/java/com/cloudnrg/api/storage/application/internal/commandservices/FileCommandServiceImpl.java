@@ -16,6 +16,7 @@ import com.cloudnrg.api.storage.infrastructure.persistence.jpa.repositories.Fold
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -107,6 +108,7 @@ public class FileCommandServiceImpl implements FileCommandService {
 
 
     @Override
+    @Transactional
     public void handle(DeleteFileByIdCommand command) {
         var file = cloudFileRepository.findById(command.fileId());
 
@@ -115,11 +117,14 @@ public class FileCommandServiceImpl implements FileCommandService {
         }
 
         try {
+
+            // Publish the delete event
+            eventPublisher.publishEvent(new DeleteFileEvent(file, file.get().getId(), file.get().getUser().getId()));
+
             // Delete the file record from the database
             cloudFileRepository.delete(file.get());
 
-            // Publish the delete event
-            eventPublisher.publishEvent(new DeleteFileEvent(file, file.get().getId()));
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete file: " + e.getMessage());
         }
@@ -150,7 +155,14 @@ public class FileCommandServiceImpl implements FileCommandService {
             cloudFileRepository.save(file);
 
             // Publish an event after updating the file folder
-            eventPublisher.publishEvent(new UpdateFileParentFolderEvent(file, file.getId(), oldFolder.getId(), newFolder.getId()));
+            eventPublisher.publishEvent(new UpdateFileParentFolderEvent(
+                    file,
+                    file.getId(),
+                    file.getUser().getId(),
+                    oldFolder.getName(),
+                    newFolder.getName()
+            ));
+
             return Optional.of(file);
         } catch (Exception e) {
             throw new RuntimeException("Failed to update file folder: " + e.getMessage());
@@ -162,18 +174,27 @@ public class FileCommandServiceImpl implements FileCommandService {
     public Optional<CloudFile> handle(UpdateFileNameCommand command) {
         var fileResult = cloudFileRepository.findById(command.fileId());
 
+
+
         if (fileResult.isEmpty()) {
             throw new RuntimeException("File not found");
         }
 
         var file = fileResult.get();
+        var oldName = file.getFilename();
         file.setFilename(command.name());
 
         try {
             cloudFileRepository.save(file);
 
             // Publish an event after updating the file name
-            eventPublisher.publishEvent(new UpdateFileNameEvent(file, file.getId(), command.name()));
+            eventPublisher.publishEvent(new UpdateFileNameEvent(
+                    file,
+                    file.getId(),
+                    file.getUser().getId(),
+                    file.getFilename(),
+                    oldName
+            ));
             return Optional.of(file);
         } catch (Exception e) {
             throw new RuntimeException("Failed to update file name: " + e.getMessage());

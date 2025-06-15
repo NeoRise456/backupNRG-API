@@ -1,5 +1,6 @@
 package com.cloudnrg.api.iam.application.internal.eventhandlers;
 
+import com.cloudnrg.api.iam.application.internal.outboundservices.acl.ExternalAuditLogService;
 import com.cloudnrg.api.iam.application.internal.outboundservices.acl.ExternalFolderService;
 import com.cloudnrg.api.iam.domain.model.events.UserCreationEvent;
 import com.cloudnrg.api.iam.domain.model.queries.GetUserByIdQuery;
@@ -14,13 +15,14 @@ public class UserCreationEventHandler {
 
     private final UserQueryService userQueryService;
     private final ExternalFolderService externalFolderService;
+    private final ExternalAuditLogService externalAuditLogService;
 
-    public UserCreationEventHandler(
-            UserQueryService userQueryService,
-            ExternalFolderService externalFolderService
-    ) {
+    public UserCreationEventHandler(UserQueryService userQueryService,
+                                    ExternalFolderService externalFolderService,
+                                    ExternalAuditLogService externalAuditLogService) {
         this.userQueryService = userQueryService;
         this.externalFolderService = externalFolderService;
+        this.externalAuditLogService = externalAuditLogService;
     }
 
     //on user creation create a root folder for the user
@@ -33,8 +35,20 @@ public class UserCreationEventHandler {
             throw new RuntimeException("User not found");
         }
 
+        //user creation log
+
+        var logUser = externalAuditLogService.createAuditLog(
+                user.get().getId(),
+                "CREATE",
+                "USER",
+                user.get().getId().toString(),
+                "user " + user.get().getUsername() + " created"
+        );
+
         //create root folder for user
         var rootFolderId = externalFolderService.createRootFolderForUser(user.get().getId());
+
+
 
     }
 

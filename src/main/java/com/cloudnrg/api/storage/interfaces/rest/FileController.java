@@ -159,8 +159,12 @@ public class FileController {
         try {
             fileCommandService.handle(new DeleteFileByIdCommand(fileId));
             return ResponseEntity.ok(new MessageResource("File deleted successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new MessageResource("File not found: " + fileId));
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResource("Error deleting file: " + e.getMessage()));
         }
     }
 

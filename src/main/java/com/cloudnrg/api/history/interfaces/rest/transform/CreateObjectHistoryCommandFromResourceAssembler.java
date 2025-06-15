@@ -8,7 +8,8 @@ public class CreateObjectHistoryCommandFromResourceAssembler {
         return new CreateObjectHistoryCommand(
                 resource.fileId(),
                 resource.userId(),
-                resource.action()
+                resource.action(),
+                resource.message()
         );
     }
 }

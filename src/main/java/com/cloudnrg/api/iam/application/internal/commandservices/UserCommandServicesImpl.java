@@ -15,6 +15,7 @@ public class UserCommandServicesImpl implements UserCommandService {
 
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UserCommandServicesImpl.class);
 
     public UserCommandServicesImpl(
             UserRepository userRepository,
@@ -42,7 +43,10 @@ public class UserCommandServicesImpl implements UserCommandService {
             return Optional.of(savedUser);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create user: " + e.getMessage());
+            // Log the original exception with its full stack trace
+            logger.error("Failed to create user '{}'. Original exception: ", command.username(), e);
+            // Re-throw the exception, chaining the original 'e' to preserve its stack trace
+            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
         }
 
 
