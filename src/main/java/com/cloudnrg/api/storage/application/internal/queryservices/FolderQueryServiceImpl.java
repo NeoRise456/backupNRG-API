@@ -1,6 +1,7 @@
 package com.cloudnrg.api.storage.application.internal.queryservices;
 
 import com.cloudnrg.api.storage.domain.model.aggregates.Folder;
+import com.cloudnrg.api.storage.domain.model.queries.GetFolderHierarchyByIdQuery;
 import com.cloudnrg.api.storage.domain.model.queries.GetRootFolderByUserIdQuery;
 import com.cloudnrg.api.storage.domain.services.FolderQueryService;
 import com.cloudnrg.api.storage.infrastructure.persistence.jpa.repositories.FolderRepository;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,5 +28,10 @@ public class FolderQueryServiceImpl implements FolderQueryService {
     @Override
     public Optional<Folder> handle(GetRootFolderByUserIdQuery query) {
         return folderRepository.findFolderByUser_IdAndName(query.userId(), "root");
+    }
+
+    @Override
+    public List<Folder> handle(GetFolderHierarchyByIdQuery query) {
+        return folderRepository.findFoldersByParentFolder_Id(query.folderId());
     }
 }
