@@ -29,6 +29,7 @@ import org.springframework.http.MediaType;
 import com.cloudnrg.api.storage.domain.model.queries.GetFileByIdQuery;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @CrossOrigin(origins = "*", methods = { RequestMethod.POST, RequestMethod.GET, RequestMethod.PUT, RequestMethod.DELETE })
@@ -133,17 +134,25 @@ public class FileController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
     })
     @PutMapping(value = "/{fileId}/folder", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<FileResource> updateFileFolder(@PathVariable UUID fileId, @RequestParam("folderId") UUID folderId) {
+    public ResponseEntity<List<FileResource>> updateFileFolder(@PathVariable UUID fileId, @RequestBody List<UUID> folderIds) {
         try {
-            var updateFileFolderCommand = new UpdateFileFolderCommand(fileId, folderId);
-            var updatedFile = fileCommandService.handle(updateFileFolderCommand);
-            if (updatedFile.isEmpty()) {
+            List<FileResource> updatedFiles = folderIds.stream()
+                    .map(folderId -> {
+                        var command = new UpdateFileFolderCommand(fileId, folderId);
+                        var updatedFile = fileCommandService.handle(command);
+                        return updatedFile
+                                .map(file -> FileResourceFromEntityAssembler.toResourceFromEntity(file, "ok"))
+                                .orElse(null);
+                    })
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            if (updatedFiles.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
-            var fileResource = FileResourceFromEntityAssembler.toResourceFromEntity(updatedFile.get(), "ok");
-            return ResponseEntity.ok(fileResource);
+            return ResponseEntity.ok(updatedFiles);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new FileResource(null, "Error updating file folder"));
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
@@ -155,17 +164,35 @@ public class FileController {
             @ApiResponse(responseCode = "500", description = "Internal server error"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    public ResponseEntity<MessageResource> deleteFileById(@PathVariable UUID fileId) {
-        try {
-            fileCommandService.handle(new DeleteFileByIdCommand(fileId));
-            return ResponseEntity.ok(new MessageResource("File deleted successfully"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new MessageResource("File not found: " + fileId));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new MessageResource("Error deleting file: " + e.getMessage()));
+    public ResponseEntity<MessageResource> deleteFileById(@RequestBody List<UUID> fileIds) {
+
+        int deletedCount = 0;
+
+        StringBuilder notFoundIds = new StringBuilder();
+
+        for (UUID fileId : fileIds) {
+            try {
+                fileCommandService.handle(new DeleteFileByIdCommand(fileId));
+                deletedCount++;
+            } catch (RuntimeException e) {
+                notFoundIds.append(fileId).append(" ");
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new MessageResource("Error deleting file: " + e.getMessage()));
+            }
         }
+
+        if (deletedCount == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new MessageResource("Files not found: " + notFoundIds.toString().trim()));
+        }
+
+        String message = "Deleted " + deletedCount + " file(s)";
+
+        if (!notFoundIds.isEmpty()) {
+            message += ". Not found: " + notFoundIds.toString().trim();
+        }
+        return ResponseEntity.ok(new MessageResource(message));
     }
 
 
