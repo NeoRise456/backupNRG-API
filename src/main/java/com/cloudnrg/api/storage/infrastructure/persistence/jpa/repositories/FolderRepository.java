@@ -4,6 +4,7 @@ import com.cloudnrg.api.storage.domain.model.aggregates.Folder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,4 +16,6 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
     Optional<Folder> findFolderByUser_IdAndName(UUID userId, String name);
 
     Boolean existsFolderByNameAndUser_Id(String name, UUID userId);
+
+    List<Folder> findFoldersByParentFolder_Id(UUID parentFolderId);
 }
