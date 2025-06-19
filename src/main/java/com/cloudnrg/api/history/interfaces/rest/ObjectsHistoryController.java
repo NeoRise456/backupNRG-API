@@ -9,6 +9,7 @@ import com.cloudnrg.api.history.interfaces.rest.resources.CreateObjectHistoryRes
 import com.cloudnrg.api.history.interfaces.rest.resources.ObjectHistoryResource;
 import com.cloudnrg.api.history.interfaces.rest.transform.CreateObjectHistoryCommandFromResourceAssembler;
 import com.cloudnrg.api.history.interfaces.rest.transform.ObjectHistoryResourceFromEntityAssembler;
+import com.cloudnrg.api.shared.application.external.outboundedservices.ExternalIamService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -17,19 +18,24 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
-@CrossOrigin(origins = "*", methods = { RequestMethod.POST, RequestMethod.GET, RequestMethod.PUT, RequestMethod.DELETE })
 @RestController
 @RequestMapping(value = "/api/v1/history", produces = MediaType.APPLICATION_JSON_VALUE)
 @Tag(name = "Objects History", description = "Objects History Management Endpoint")
-@AllArgsConstructor
 public class ObjectsHistoryController {
-    private final ObjectHistoryCommandService commandService;
     private final ObjectHistoryQueryService queryService;
+    private final ExternalIamService externalIamService;
+
+    public ObjectsHistoryController(ObjectHistoryQueryService queryService, ExternalIamService externalIamService) {
+        this.externalIamService = externalIamService;
+        this.queryService = queryService;
+    }
 
     @Operation(summary = "Get Object History by ID", description = "Retrieve an Object History record by its ID.")
     @ApiResponses(value = {
@@ -54,8 +60,16 @@ public class ObjectsHistoryController {
             @ApiResponse(responseCode = "404", description = "No Object Histories found for the User ID"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<ObjectHistoryResource>> getAllObjectsHistoryByUserId(@PathVariable UUID userId) {
+
+    @GetMapping("/user")
+    public ResponseEntity<List<ObjectHistoryResource>> getAllObjectsHistoryByUserId(@AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        var user = externalIamService.getUserByUsername(username);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        var userId = user.get().getId();
         var getAllObjectsHistoryQuery = new GetAllObjectsHistoryByUserIdQuery(userId);
         var objectsHistory = queryService.handle(getAllObjectsHistoryQuery);
         if (objectsHistory.isEmpty()) {
