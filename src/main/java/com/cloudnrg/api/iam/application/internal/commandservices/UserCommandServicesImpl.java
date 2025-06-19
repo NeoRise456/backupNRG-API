@@ -3,7 +3,6 @@ package com.cloudnrg.api.iam.application.internal.commandservices;
 import com.cloudnrg.api.iam.application.internal.outboundservices.hashing.HashingService;
 import com.cloudnrg.api.iam.application.internal.outboundservices.tokens.TokenService;
 import com.cloudnrg.api.iam.domain.model.aggregates.User;
-import com.cloudnrg.api.iam.domain.model.commands.CreateUserCommand;
 import com.cloudnrg.api.iam.domain.model.commands.SignInCommand;
 import com.cloudnrg.api.iam.domain.model.commands.SignUpCommand;
 import com.cloudnrg.api.iam.domain.model.events.UserCreationEvent;
@@ -58,37 +57,8 @@ public class UserCommandServicesImpl implements UserCommandService {
                                 .orElseThrow(() -> new RuntimeException("Role name not found")))
                 .toList();
         var user = new User(command.username(), command.email(), hashingService.encode(command.password()), roles);
-        userRepository.save(user);
+        var savedUser = userRepository.save(user);
+        eventPublisher.publishEvent(new UserCreationEvent(savedUser, savedUser.getId()));
         return userRepository.findByUsername(command.username());
-    }
-
-    @Override
-    public Optional<User> handle(CreateUserCommand command) {
-
-        var newUser = new User(
-                command.username(),
-                command.email(),
-                command.passwordHash()
-        );
-
-        try {
-
-            var savedUser = userRepository.save(newUser);
-
-            //publish event
-            eventPublisher.publishEvent(new UserCreationEvent(savedUser, savedUser.getId()));
-
-            return Optional.of(savedUser);
-
-        } catch (Exception e) {
-            // Log the original exception with its full stack trace
-            logger.error("Failed to create user '{}'. Original exception: ", command.username(), e);
-            // Re-throw the exception, chaining the original 'e' to preserve its stack trace
-            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
-        }
-
-
-
-
     }
 }
