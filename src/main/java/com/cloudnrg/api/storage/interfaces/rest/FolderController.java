@@ -46,23 +46,25 @@ public class FolderController {
         this.externalIamService = externalIamService;
     }
 
-    @Operation(summary = "Get root folder by user id", description = "Get root folder by user id")
-    @GetMapping(
-            value = "/root",
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @Operation(summary = "Get root folder by user authenticated", description = "Get root folder by user authenticated")
+    @GetMapping(value = "/root")
     @ApiResponses(value = {
             @ApiResponse( responseCode = "200", description = "Root folder retrieved successfully"),
             @ApiResponse( responseCode = "400", description = "Invalid input data"),
             @ApiResponse( responseCode = "401", description = "Unauthorized"),
     })
-    public ResponseEntity<FolderResource> getRootFolderByUserId(
-            @RequestParam UUID userId
-    ) {
+    public ResponseEntity<FolderResource> getRootFolderByUserId(@AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
 
-        var getRootFolderByUserIdQuery = new GetRootFolderByUserIdQuery(
-                userId
-        );
+        var user = externalIamService.getUserByUsername(username);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        var userId = user.get().getId();
+
+        var getRootFolderByUserIdQuery = new GetRootFolderByUserIdQuery(userId);
 
         var folder = folderQueryService.handle(getRootFolderByUserIdQuery);
 
@@ -174,7 +176,7 @@ public class FolderController {
         }
     }
 
-    @Operation(summary = "Get folder hierarchy by user id", description = "Returns the full folder hierarchy for a user")
+    @Operation(summary = "Get folder hierarchy by user authenticated", description = "Returns the full folder hierarchy for a user authenticated")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Hierarchy retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Root folder not found"),
@@ -182,7 +184,13 @@ public class FolderController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @GetMapping("/hierarchy")
-    public ResponseEntity<HierarchyResource> getFolderHierarchyByUserId(@RequestParam UUID userId) {
+    public ResponseEntity<HierarchyResource> getFolderHierarchyByUserId(@AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        var user = externalIamService.getUserByUsername(username);
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        var userId = user.get().getId();
         var rootFolderOpt = folderQueryService.handle(new GetRootFolderByUserIdQuery(userId));
         if (rootFolderOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
