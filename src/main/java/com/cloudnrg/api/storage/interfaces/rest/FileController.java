@@ -1,5 +1,6 @@
 package com.cloudnrg.api.storage.interfaces.rest;
 
+import com.cloudnrg.api.shared.application.external.outboundedservices.ExternalIamService;
 import com.cloudnrg.api.shared.interfaces.rest.MessageResource;
 import com.cloudnrg.api.storage.domain.model.commands.CreateFileCommand;
 import com.cloudnrg.api.storage.domain.model.commands.DeleteFileByIdCommand;
@@ -18,6 +19,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,10 +43,12 @@ public class FileController {
 
     private final FileCommandService fileCommandService;
     private final FileQueryService fileQueryService;
+    private final ExternalIamService externalIamService;
 
-    public FileController(FileCommandService fileCommandService, FileQueryService fileQueryService) {
+    public FileController(FileCommandService fileCommandService, FileQueryService fileQueryService, ExternalIamService externalIamService) {
         this.fileCommandService = fileCommandService;
         this.fileQueryService = fileQueryService;
+        this.externalIamService = externalIamService;
     }
 
     @Operation(summary = "Upload a file", description = "Upload a file with metadata")
@@ -59,10 +64,19 @@ public class FileController {
     })
     public ResponseEntity<FileResource> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("userId") UUID userId,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("folderId") UUID folderId
 
     ) {
+        String username = userDetails.getUsername();
+
+        var user = externalIamService.getUserByUsername(username);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        var userId = user.get().getId();
 
         var createFileCommand = new CreateFileCommand(
                 file,
