@@ -1,17 +1,15 @@
 package com.cloudnrg.api.iam.interfaces.rest.transform;
 
 import com.cloudnrg.api.iam.domain.model.aggregates.User;
+import com.cloudnrg.api.iam.domain.model.entities.Role;
 import com.cloudnrg.api.iam.interfaces.rest.resources.UserResource;
 
 public class UserResourceFromEntityAssembler {
 
-    public static UserResource toResourceFromEntity (User entity) {
-
-        return new UserResource(
-                entity.getId(),
-                entity.getUsername(),
-                entity.getEmail(),
-                entity.getPassword()
-        );
+    public static UserResource toResourceFromEntity (User user) {
+        var roles = user.getRoles().stream()
+                .map(Role::getStringName)
+                .toList();
+        return new UserResource(user.getId(), user.getUsername(), user.getEmail(), roles);
     }
 }
