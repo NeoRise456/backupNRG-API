@@ -1,6 +1,7 @@
 package com.cloudnrg.api.storage.interfaces.rest;
 
 
+import com.cloudnrg.api.shared.application.external.outboundedservices.ExternalIamService;
 import com.cloudnrg.api.storage.domain.model.aggregates.Folder;
 import com.cloudnrg.api.storage.domain.model.commands.CreateFolderCommand;
 import com.cloudnrg.api.storage.domain.model.commands.DeleteFolderByIdCommand;
@@ -10,16 +11,21 @@ import com.cloudnrg.api.storage.domain.model.queries.GetFolderHierarchyByIdQuery
 import com.cloudnrg.api.storage.domain.model.queries.GetRootFolderByUserIdQuery;
 import com.cloudnrg.api.storage.domain.services.FolderCommandService;
 import com.cloudnrg.api.storage.domain.services.FolderQueryService;
+import com.cloudnrg.api.storage.interfaces.rest.resources.CreateFolderResource;
 import com.cloudnrg.api.storage.interfaces.rest.resources.FolderResource;
 import com.cloudnrg.api.storage.interfaces.rest.resources.HierarchyResource;
+import com.cloudnrg.api.storage.interfaces.rest.transform.CreateFolderCommandFromResourceAssembler;
 import com.cloudnrg.api.storage.interfaces.rest.transform.FolderResourceFromEntityAssembler;
 import com.cloudnrg.api.storage.interfaces.rest.transform.HierarchyResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,10 +38,12 @@ import java.util.UUID;
 public class FolderController {
     private final FolderCommandService folderCommandService;
     private final FolderQueryService folderQueryService;
+    private final ExternalIamService externalIamService;
 
-    public FolderController(FolderCommandService folderCommandService, FolderQueryService folderQueryService) {
+    public FolderController(FolderCommandService folderCommandService, FolderQueryService folderQueryService, ExternalIamService externalIamService) {
         this.folderCommandService = folderCommandService;
         this.folderQueryService = folderQueryService;
+        this.externalIamService = externalIamService;
     }
 
     @Operation(summary = "Get root folder by user id", description = "Get root folder by user id")
@@ -75,12 +83,21 @@ public class FolderController {
             @ApiResponse(responseCode = "500", description = "Internal server error"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
+    //TO-DO: Reemplazar
     @PostMapping
-    public ResponseEntity<FolderResource> createFolder(@RequestBody CreateFolderCommand command) {
+    public ResponseEntity<FolderResource> createFolder(@AuthenticationPrincipal UserDetails userDetails, @RequestBody CreateFolderResource resource) {
+        String username = userDetails.getUsername();
+        var user = externalIamService.getUserByUsername(username);
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        var userId = user.get().getId();
+        var createFolderCommand = CreateFolderCommandFromResourceAssembler.toCommandFromResource(userId, resource);
+
         try {
-            var folder = folderCommandService.handle(command);
-            var resource = FolderResourceFromEntityAssembler.toResourceFromEntity(folder.get());
-            return ResponseEntity.status(201).body(resource);
+            var folder = folderCommandService.handle(createFolderCommand);
+            var folderResource = FolderResourceFromEntityAssembler.toResourceFromEntity(folder.get());
+            return ResponseEntity.status(201).body(folderResource);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
