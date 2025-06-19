@@ -1,6 +1,6 @@
-package com.cloudnrg.api.iam.infrastructure.bcrypt.services;
+package com.cloudnrg.api.iam.infrastructure.hashing.bcrypt.services;
 
-import com.cloudnrg.api.iam.infrastructure.bcrypt.BCryptHashingService;
+import com.cloudnrg.api.iam.infrastructure.hashing.bcrypt.BCryptHashingService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
