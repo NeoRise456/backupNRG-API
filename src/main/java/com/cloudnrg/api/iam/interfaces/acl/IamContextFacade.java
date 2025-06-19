@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface IamContextFacade {
     Optional<User> fetchUserById(UUID userId);
+    UUID fetchUserIdByUsername(String username);
 }

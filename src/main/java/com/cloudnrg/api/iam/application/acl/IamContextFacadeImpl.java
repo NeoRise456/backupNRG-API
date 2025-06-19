@@ -2,6 +2,7 @@ package com.cloudnrg.api.iam.application.acl;
 
 import com.cloudnrg.api.iam.domain.model.aggregates.User;
 import com.cloudnrg.api.iam.domain.model.queries.GetUserByIdQuery;
+import com.cloudnrg.api.iam.domain.model.queries.GetUserByUsernameQuery;
 import com.cloudnrg.api.iam.domain.services.UserCommandService;
 import com.cloudnrg.api.iam.domain.services.UserQueryService;
 import com.cloudnrg.api.iam.interfaces.acl.IamContextFacade;
@@ -25,5 +26,14 @@ public class IamContextFacadeImpl implements IamContextFacade {
     @Override
     public Optional<User> fetchUserById(UUID userId) {
         return userQueryService.handle(new GetUserByIdQuery(userId));
+    }
+
+    @Override
+    public UUID fetchUserIdByUsername(String username) {
+        var getUserByUsernameQuery = new GetUserByUsernameQuery(username);
+        var result = userQueryService.handle(getUserByUsernameQuery);
+        if (result.isEmpty())
+            return null;
+        return result.get().getId();
     }
 }
