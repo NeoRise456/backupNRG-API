@@ -1,7 +1,7 @@
-package com.cloudnrg.api.iam.infrastructure.jwt;
+package com.cloudnrg.api.iam.infrastructure.tokens.jwt;
 
 import com.cloudnrg.api.iam.application.internal.outboundservices.tokens.TokenService;
-import com.cloudnrg.api.iam.infrastructure.jwt.services.TokenServiceImpl;
+import com.cloudnrg.api.iam.infrastructure.tokens.jwt.services.TokenServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 

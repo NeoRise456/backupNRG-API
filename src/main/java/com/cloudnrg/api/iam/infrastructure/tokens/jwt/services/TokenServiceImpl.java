@@ -1,6 +1,6 @@
-package com.cloudnrg.api.iam.infrastructure.jwt.services;
+package com.cloudnrg.api.iam.infrastructure.tokens.jwt.services;
 
-import com.cloudnrg.api.iam.infrastructure.jwt.BearerTokenService;
+import com.cloudnrg.api.iam.infrastructure.tokens.jwt.BearerTokenService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
