@@ -211,4 +211,44 @@ public class FolderController {
         );
     }
 
+
+    @Operation(summary = "Get Folder By Id", description = "Returns a folder by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Folder retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Folder not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    @GetMapping("/{folderId}")
+    public ResponseEntity<FolderResource> getFolderById(@PathVariable UUID folderId) {
+        var query = new com.cloudnrg.api.storage.domain.model.queries.GetFolderByIdQuery(folderId);
+        var folderOpt = folderQueryService.handle(query);
+        if (folderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var folderResource = FolderResourceFromEntityAssembler.toResourceFromEntity(folderOpt.get());
+        return ResponseEntity.ok(folderResource);
+    }
+
+    @Operation(summary = "Get Folders by Parent Id ", description = "Returns a list of folders by their parent folder ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Folders retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Parent folder not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
+    @GetMapping("/parent/{parentFolderId}")
+    public ResponseEntity<List<FolderResource>> getFoldersByParentFolderId(@PathVariable UUID parentFolderId) {
+        var query = new com.cloudnrg.api.storage.domain.model.queries.GetFoldersByParentFolderIdQuery(parentFolderId);
+        var folders = folderQueryService.handle(query);
+        if (folders.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var folderResources = folders.stream()
+                .map(FolderResourceFromEntityAssembler::toResourceFromEntity)
+                .toList();
+        return ResponseEntity.ok(folderResources);
+    }
+
+
 }
