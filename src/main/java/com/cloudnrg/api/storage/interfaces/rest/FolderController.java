@@ -221,7 +221,7 @@ public class FolderController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @GetMapping()
-    public ResponseEntity<?> getFolderById(
+    public ResponseEntity<FolderResource> getFolderById(
             @RequestParam(required = false) UUID folderId,
             @AuthenticationPrincipal UserDetails userDetails
             ) {
@@ -264,9 +264,7 @@ public class FolderController {
     public ResponseEntity<List<FolderResource>> getFoldersByParentFolderId(@PathVariable UUID parentFolderId) {
         var query = new com.cloudnrg.api.storage.domain.model.queries.GetFoldersByParentFolderIdQuery(parentFolderId);
         var folders = folderQueryService.handle(query);
-        if (folders.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+
         var folderResources = folders.stream()
                 .map(FolderResourceFromEntityAssembler::toResourceFromEntity)
                 .toList();
