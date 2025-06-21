@@ -7,6 +7,7 @@ import com.cloudnrg.api.storage.domain.model.commands.CreateFolderCommand;
 import com.cloudnrg.api.storage.domain.model.commands.DeleteFolderByIdCommand;
 import com.cloudnrg.api.storage.domain.model.commands.UpdateFolderNameCommand;
 import com.cloudnrg.api.storage.domain.model.commands.UpdateFolderParentCommand;
+import com.cloudnrg.api.storage.domain.model.queries.GetFolderByIdQuery;
 import com.cloudnrg.api.storage.domain.model.queries.GetFolderHierarchyByIdQuery;
 import com.cloudnrg.api.storage.domain.model.queries.GetRootFolderByUserIdQuery;
 import com.cloudnrg.api.storage.domain.services.FolderCommandService;
@@ -86,7 +87,7 @@ public class FolderController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     //TO-DO: Reemplazar
-    @PostMapping
+    @PostMapping("/new")
     public ResponseEntity<FolderResource> createFolder(@AuthenticationPrincipal UserDetails userDetails, @RequestBody CreateFolderResource resource) {
         String username = userDetails.getUsername();
         var user = externalIamService.getUserByUsername(username);
@@ -219,9 +220,31 @@ public class FolderController {
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    @GetMapping("/{folderId}")
-    public ResponseEntity<FolderResource> getFolderById(@PathVariable UUID folderId) {
-        var query = new com.cloudnrg.api.storage.domain.model.queries.GetFolderByIdQuery(folderId);
+    @GetMapping()
+    public ResponseEntity<?> getFolderById(
+            @RequestParam(required = false) UUID folderId,
+            @AuthenticationPrincipal UserDetails userDetails
+            ) {
+
+        String username = userDetails.getUsername();
+        var user = externalIamService.getUserByUsername(username);
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        var userId = user.get().getId();
+
+
+
+        if (folderId == null) {
+            var rootFolderOpt = folderQueryService.handle(new GetRootFolderByUserIdQuery(userId));
+            if (rootFolderOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            var folderResource = FolderResourceFromEntityAssembler.toResourceFromEntity(rootFolderOpt.get());
+            return ResponseEntity.ok(folderResource);
+        }
+
+        var query = new GetFolderByIdQuery(folderId);
         var folderOpt = folderQueryService.handle(query);
         if (folderOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
