@@ -34,6 +34,7 @@ import java.nio.file.Paths;
 import org.springframework.http.MediaType;
 import com.cloudnrg.api.storage.domain.model.queries.GetFileByIdQuery;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -119,8 +120,29 @@ public class FileController {
             @ApiResponse( responseCode = "401", description = "Unauthorized"),
     })
     public ResponseEntity<List<FileResource>> GetFilesByFolderId(
-            @PathVariable UUID folderId
+            @PathVariable UUID folderId,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
+
+        String username = userDetails.getUsername();
+
+        var user = externalIamService.getUserByUsername(username);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        var userId = user.get().getId();
+
+        var folder = folderQueryService.handle(new GetFolderByIdQuery(folderId));
+
+        if(folder.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if(!folder.get().getUser().getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         var getFilesByFolderIdQuery = new GetFilesByFolderIdQuery(folderId);
 
@@ -142,7 +164,28 @@ public class FileController {
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
     })
     @PutMapping(value = "/{fileId}/name", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<FileResource> updateFileName(@PathVariable UUID fileId, @RequestParam("fileName") String fileName) {
+    public ResponseEntity<FileResource> updateFileName(@PathVariable UUID fileId, @RequestParam("fileName") String fileName, @AuthenticationPrincipal UserDetails userDetails) {
+
+        String username = userDetails.getUsername();
+
+        var user = externalIamService.getUserByUsername(username);
+
+        if (user.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        var userId = user.get().getId();
+
+        var file = fileQueryService.handle(new GetFileByIdQuery(fileId));
+
+        if (file.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (!file.get().getUser().getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new FileResource(null, "You do not have permission to update this file"));
+        }
+
         try {
             var updateFileNameCommand = new UpdateFileNameCommand(fileId, fileName);
             var updatedFile = fileCommandService.handle(updateFileNameCommand);
