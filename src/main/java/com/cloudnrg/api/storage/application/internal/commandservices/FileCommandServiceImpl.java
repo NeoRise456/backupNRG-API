@@ -32,7 +32,7 @@ public class FileCommandServiceImpl implements FileCommandService {
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
 
-    private static final String UPLOAD_DIR = "C:\\Users\\Neo\\Documents\\provisional-storage\\";
+    private static final String UPLOAD_DIR = "D:\\Storage-CloudNRG\\";
 
     private final ApplicationEventPublisher eventPublisher;
 

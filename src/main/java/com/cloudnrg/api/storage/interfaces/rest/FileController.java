@@ -8,8 +8,11 @@ import com.cloudnrg.api.storage.domain.model.commands.UpdateFileFolderCommand;
 import com.cloudnrg.api.storage.domain.model.commands.UpdateFileNameCommand;
 import com.cloudnrg.api.storage.domain.model.queries.GetFileByIdQuery;
 import com.cloudnrg.api.storage.domain.model.queries.GetFilesByFolderIdQuery;
+import com.cloudnrg.api.storage.domain.model.queries.GetFolderByIdQuery;
 import com.cloudnrg.api.storage.domain.services.FileCommandService;
 import com.cloudnrg.api.storage.domain.services.FileQueryService;
+import com.cloudnrg.api.storage.domain.services.FolderCommandService;
+import com.cloudnrg.api.storage.domain.services.FolderQueryService;
 import com.cloudnrg.api.storage.interfaces.rest.resources.FileResource;
 import com.cloudnrg.api.storage.interfaces.rest.transform.FileResourceFromEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,11 +47,13 @@ public class FileController {
     private final FileCommandService fileCommandService;
     private final FileQueryService fileQueryService;
     private final ExternalIamService externalIamService;
+    private final FolderQueryService folderQueryService;
 
-    public FileController(FileCommandService fileCommandService, FileQueryService fileQueryService, ExternalIamService externalIamService) {
+    public FileController(FileCommandService fileCommandService, FileQueryService fileQueryService, ExternalIamService externalIamService, FolderQueryService folderQueryService) {
         this.fileCommandService = fileCommandService;
         this.fileQueryService = fileQueryService;
         this.externalIamService = externalIamService;
+        this.folderQueryService = folderQueryService;
     }
 
     @Operation(summary = "Upload a file", description = "Upload a file with metadata")
@@ -78,11 +83,22 @@ public class FileController {
 
         var userId = user.get().getId();
 
+        var folder = folderQueryService.handle(new GetFolderByIdQuery(folderId));
+
+        if(folder.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new FileResource(null, "Folder not found"));
+        }
+
+        if(!folder.get().getUser().getId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new FileResource(null, "You do not have permission to upload files to this folder"));
+        }
+
         var createFileCommand = new CreateFileCommand(
                 file,
                 userId,
                 folderId
         );
+
 
         var cloudFile = fileCommandService.handle(createFileCommand);
 
